@@ -4,11 +4,11 @@ import JoinCode from '../components/JoinCode'
 import { useBroadcastPublisher } from '../hooks/useBroadcast'
 import { useTranslationSession } from '../hooks/useTranslationSession'
 import { startFakeStream } from '../lib/fakeTranslation'
-import { getTransmitCode } from '../lib/joinCode'
+import { getTransmitCode, newTransmitCode } from '../lib/joinCode'
 import { supabaseConfigError } from '../lib/supabase'
 
 export default function Transmit() {
-  const [code] = useState(() => getTransmitCode())
+  const [code, setCode] = useState(() => getTransmitCode())
   const { push, status: broadcastStatus } = useBroadcastPublisher(code)
   const [preview, setPreview] = useState('')
   // Holds the stop function while Simulate is running.
@@ -48,6 +48,7 @@ export default function Transmit() {
           Simulate
         </button>
         <button onClick={stopAll} disabled={!running}>Stop</button>
+        <button onClick={() => setCode(newTransmitCode())} disabled={running}>New code</button>
       </div>
 
       <p className="status">
