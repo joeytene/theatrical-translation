@@ -1,0 +1,48 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0b0b0d;
+  color: #fff;
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Big, touch-friendly controls */
+.btn,
+button,
+input {
+  font: inherit;
+  font-size: 1.25rem;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1px solid #333;
+  background: #1c1c21;
+  color: #fff;
+  text-align: center;
+  text-decoration: none;
+  min-height: 56px;
+  box-sizing: border-box;
+}
+
+.btn:active,
+button:active {
+  background: #2a2a31;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.ok { color: #6ee7a0; word-break: break-all; }
+.err { color: #ff8a8a; word-break: break-word; }
