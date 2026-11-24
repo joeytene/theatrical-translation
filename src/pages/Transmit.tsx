@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import JoinCode from '../components/JoinCode'
 import { useBroadcastPublisher } from '../hooks/useBroadcast'
+import { useWakeLock } from '../hooks/useWakeLock'
 import { useTranslationSession } from '../hooks/useTranslationSession'
 import { startFakeStream } from '../lib/fakeTranslation'
 import { getTransmitCode, newTransmitCode } from '../lib/joinCode'
@@ -29,6 +30,7 @@ export default function Transmit() {
   useEffect(() => () => stopFake?.(), [stopFake])
   const liveRunning = session.status !== 'idle' && session.status !== 'error'
   const running = liveRunning || stopFake !== null
+  useWakeLock(running)
 
   function stopAll() {
     session.stop()

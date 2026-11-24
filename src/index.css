@@ -68,3 +68,96 @@ button:disabled {
 .status { font-size: 0.9rem; color: #aaa; margin: 0; }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* ---- Watch caption screen ---- */
+.watch-screen {
+  position: relative;
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.watch-screen.pos-top { justify-content: flex-start; padding-top: 48px; }
+.watch-screen.pos-middle { justify-content: center; }
+.watch-screen.pos-bottom { justify-content: flex-end; padding-bottom: 32px; }
+
+.watch-captions {
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  scrollbar-width: none;
+  flex: none;
+}
+.watch-captions::-webkit-scrollbar { display: none; }
+
+/* Small, low-contrast chrome in the top-left corner */
+.watch-chrome {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  opacity: 0.35;
+  color: #888;
+}
+.chrome-btn {
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  min-height: 32px;
+  background: transparent;
+  color: #888;
+  border: 1px solid #555;
+  border-radius: 8px;
+  text-decoration: none;
+}
+.watch-err { position: absolute; top: 44px; left: 8px; margin: 0; }
+
+.jump-live {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  font-size: 1rem;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+/* ---- Viewer settings panel (full-screen sheet) ---- */
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #0b0b0d;
+  color: #fff;
+  overflow-y: auto;
+}
+.settings-inner {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.settings-inner h2,
+.settings-inner h3 { margin: 0; }
+.settings-inner h3 { font-size: 1rem; color: #aaa; margin-bottom: 8px; }
+.settings-preview {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #333;
+  line-height: 1.4;
+}
+.grow { flex: 1; min-width: 120px; padding: 0; }
+.segmented { display: flex; gap: 8px; }
+.segmented button { flex: 1; }
+.settings-inner button.selected { border: 3px solid #4da3ff; }
+.swatch { min-width: 72px; font-weight: 700; }
+.color-pickers { margin-top: 12px; }
+.color-pickers label { display: flex; align-items: center; gap: 10px; }
+.color-pickers input { padding: 2px; width: 64px; }
+.done { background: #2563eb; border-color: #2563eb; }
