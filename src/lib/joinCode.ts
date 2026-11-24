@@ -1,25 +1,29 @@
 // Letters only, without I and O (easy to confuse with 1 and 0).
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+const STORAGE_KEY = 'transmitCode'
 
 export function generateCode(): string {
-  let code = ''
-  for (let i = 0; i < 4; i++) {
-    code += ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
-  }
-  return code
+  // crypto randomness instead of Math.random. 24^4 ≈ 330k possible codes.
+  const bytes = crypto.getRandomValues(new Uint32Array(4))
+  return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('')
 }
 
-// Keep the same code across refreshes of the transmitter page.
+// Keep the same code across refreshes of the transmitter page (same tab only).
 export function getTransmitCode(): string {
   try {
-    const saved = sessionStorage.getItem('transmitCode')
+    const saved = sessionStorage.getItem(STORAGE_KEY)
     if (saved) return saved
   } catch {
     // storage unavailable: fall through and make a new code
   }
+  return newTransmitCode()
+}
+
+// Make and save a fresh code (the "New code" button).
+export function newTransmitCode(): string {
   const code = generateCode()
   try {
-    sessionStorage.setItem('transmitCode', code)
+    sessionStorage.setItem(STORAGE_KEY, code)
   } catch {
     // ignore
   }
