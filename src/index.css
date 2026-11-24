@@ -46,3 +46,25 @@ button:disabled {
 
 .ok { color: #6ee7a0; word-break: break-all; }
 .err { color: #ff8a8a; word-break: break-word; }
+
+.big-code {
+  font-size: 4rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.caption-box {
+  font-size: 1.75rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  max-height: 60vh;
+  min-height: 8rem;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: #15151a;
+}
+
+.status { font-size: 0.9rem; color: #aaa; margin: 0; }
+
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
