@@ -14,6 +14,8 @@ function mapStatus(s: string): BroadcastStatus {
 export function useBroadcastPublisher(code: string) {
   const [status, setStatus] = useState<BroadcastStatus>(supabase ? 'connecting' : 'off')
   const bufferRef = useRef('')
+  const channelRef = useRef<RealtimeChannel | null>(null)
+  const subscribedRef = useRef(false)
 
   useEffect(() => {
     if (!supabase) return
@@ -21,15 +23,18 @@ export function useBroadcastPublisher(code: string) {
     const channel = client.channel(`room:${code}`, {
       config: { broadcast: { self: false } },
     })
-    let subscribed = false
+    channelRef.current = channel
+    subscribedRef.current = false
     channel.subscribe((s) => {
-      subscribed = s === 'SUBSCRIBED'
+      // The old room's CLOSED arrives after a code change; ignore it.
+      if (channelRef.current !== channel) return
+      subscribedRef.current = s === 'SUBSCRIBED'
       setStatus(mapStatus(s))
     })
 
     // Send what we've collected every 300ms (fewer, bigger messages).
     const timer = setInterval(() => {
-      if (bufferRef.current && subscribed) {
+      if (bufferRef.current && subscribedRef.current) {
         channel.send({
           type: 'broadcast',
           event: 'caption',
@@ -41,6 +46,8 @@ export function useBroadcastPublisher(code: string) {
 
     return () => {
       clearInterval(timer)
+      channelRef.current = null
+      subscribedRef.current = false
       client.removeChannel(channel)
     }
   }, [code])
@@ -49,7 +56,15 @@ export function useBroadcastPublisher(code: string) {
     if (supabase) bufferRef.current += delta
   }, [])
 
-  return { push, status }
+  // Empty the buffer and tell viewers to wipe their captions.
+  const clear = useCallback(() => {
+    bufferRef.current = ''
+    if (subscribedRef.current) {
+      channelRef.current?.send({ type: 'broadcast', event: 'clear', payload: { ts: Date.now() } })
+    }
+  }, [])
+
+  return { push, clear, status }
 }
 
 // Viewer side: listen for captions and keep the most recent text.
@@ -70,6 +85,7 @@ export function useBroadcastSubscriber(code: string | null) {
         setText((prev) => (prev + String(payload.text ?? '')).slice(-2000))
         setLastMessageAt(Date.now())
       })
+      .on('broadcast', { event: 'clear' }, () => setText(''))
       .subscribe((s) => setStatus(mapStatus(s)))
 
     return () => {
