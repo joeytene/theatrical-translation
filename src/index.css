@@ -1,18 +1,28 @@
+/* Only --fg and --bg are set from JS (src/lib/theme.ts); the rest derive from them. */
 :root {
+  --fg: #ffffff;
+  --bg: #000000;
+  --surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
+  --surface-2: color-mix(in srgb, var(--fg) 14%, var(--bg));
+  --border: color-mix(in srgb, var(--fg) 22%, var(--bg));
+  --muted: color-mix(in srgb, var(--fg) 60%, var(--bg));
+  --accent: #4da3ff;
+  --on-accent: #00152b;
   color-scheme: dark;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
   margin: 0;
-  background: #0b0b0d;
-  color: #fff;
+  background: var(--bg);
+  color: var(--fg);
 }
 
 main {
   max-width: 560px;
   margin: 0 auto;
-  padding: 24px;
+  padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+    calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -26,9 +36,9 @@ input {
   font-size: 1.25rem;
   padding: 18px 20px;
   border-radius: 12px;
-  border: 1px solid #333;
-  background: #1c1c21;
-  color: #fff;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
   text-align: center;
   text-decoration: none;
   min-height: 56px;
@@ -37,15 +47,30 @@ input {
 
 .btn:active,
 button:active {
-  background: #2a2a31;
+  background: var(--surface-2);
 }
 
 button:disabled {
   opacity: 0.5;
 }
 
-.ok { color: #6ee7a0; word-break: break-all; }
-.err { color: #ff8a8a; word-break: break-word; }
+input[type='range'] { accent-color: var(--accent); }
+
+.primary,
+.done {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.primary:active,
+.done:active { background: var(--accent); filter: brightness(0.9); }
+.primary { font-size: 1.75rem; padding: 26px 20px; }
+.secondary { font-size: 1rem; padding: 12px 16px; min-height: 48px; color: var(--muted); }
+
+/* Mixed with --fg so they stay readable on light and dark themes */
+.ok { color: color-mix(in srgb, #22c55e 70%, var(--fg)); word-break: break-all; }
+.err { color: color-mix(in srgb, #ef4444 70%, var(--fg)); word-break: break-word; }
 
 .big-code {
   font-size: 4rem;
@@ -62,111 +87,231 @@ button:disabled {
   overflow: auto;
   padding: 16px;
   border-radius: 12px;
-  background: #15151a;
+  background: var(--surface);
 }
 
-.status { font-size: 0.9rem; color: #aaa; margin: 0; }
+.status { font-size: 0.9rem; color: var(--muted); margin: 0; }
 
 .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Fixed top-right gear, 44px+ target, clear of safe areas */
+.gear {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+  z-index: 5;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+/* ---- Join form (Watch without a code) ---- */
+.join-screen { min-height: 100dvh; box-sizing: border-box; justify-content: center; text-align: center; }
+.join-form { display: flex; flex-direction: column; gap: 16px; }
+.code-input {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+  width: 100%;
+  padding: 16px 0 16px 0.3em; /* offset the trailing letter-spacing */
+}
 
 /* ---- Watch caption screen ---- */
 .watch-screen {
   position: relative;
   height: 100dvh;
   box-sizing: border-box;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
   overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--fg);
 }
-.watch-screen.pos-top { justify-content: flex-start; padding-top: 48px; }
-.watch-screen.pos-middle { justify-content: center; }
-.watch-screen.pos-bottom { justify-content: flex-end; padding-bottom: 32px; }
 
-.watch-captions {
+/* The box is placed in px inside this, which stays clear of notches and the home bar */
+.caption-stage {
+  position: absolute;
+  top: env(safe-area-inset-top);
+  right: env(safe-area-inset-right);
+  bottom: env(safe-area-inset-bottom);
+  left: env(safe-area-inset-left);
+  pointer-events: none;
+}
+
+/* Positioned in px from JS; see CaptionBox */
+.caption-area {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  outline: none;
+}
+.caption-scroll {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px;
   line-height: 1.4;
   white-space: pre-wrap;
   overflow-y: auto;
   scrollbar-width: none;
-  flex: none;
+  overscroll-behavior: contain;
 }
-.watch-captions::-webkit-scrollbar { display: none; }
+.caption-scroll::-webkit-scrollbar { display: none; }
+
+.caption-area.editing {
+  outline: 2px dashed var(--accent);
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.caption-area.editing .caption-scroll { overflow: hidden; pointer-events: none; }
+.caption-area.editing:focus-visible { outline-style: solid; }
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  height: 44px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: 12px 0 12px 0;
+  background:
+    linear-gradient(135deg, transparent 50%, var(--accent) 50%, var(--accent) 56%, transparent 56%,
+      transparent 66%, var(--accent) 66%, var(--accent) 72%, transparent 72%, transparent 82%,
+      var(--accent) 82%, var(--accent) 88%, transparent 88%);
+}
+
+.layout-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+.layout-bar.at-top { top: calc(64px + env(safe-area-inset-top)); }
+.layout-bar.at-bottom { bottom: calc(12px + env(safe-area-inset-bottom)); }
+.layout-bar button { font-size: 1rem; padding: 8px 16px; min-height: 44px; }
 
 /* Small, low-contrast chrome in the top-left corner */
 .watch-chrome {
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: calc(8px + env(safe-area-inset-top));
+  left: calc(8px + env(safe-area-inset-left));
+  max-width: calc(100% - 80px - env(safe-area-inset-left) - env(safe-area-inset-right));
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   font-size: 0.8rem;
-  opacity: 0.35;
-  color: #888;
+  color: var(--muted);
+  opacity: 0.7;
+  z-index: 1;
 }
 .chrome-btn {
+  display: inline-flex;
+  align-items: center;
   font-size: 0.8rem;
   padding: 6px 10px;
-  min-height: 32px;
+  min-height: 44px;
+  box-sizing: border-box;
   background: transparent;
-  color: #888;
-  border: 1px solid #555;
+  color: var(--muted);
+  border: 1px solid var(--border);
   border-radius: 8px;
   text-decoration: none;
 }
-.watch-err { position: absolute; top: 44px; left: 8px; margin: 0; }
+.watch-err {
+  position: absolute;
+  top: calc(60px + env(safe-area-inset-top));
+  left: 8px;
+  right: 8px;
+  margin: 0;
+}
 
 .jump-live {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
+  right: 12px;
+  bottom: 56px; /* clear of the corner */
   font-size: 1rem;
   padding: 10px 16px;
   min-height: 44px;
   border-radius: 999px;
 }
 
-/* ---- Viewer settings panel (full-screen sheet) ---- */
+/* ---- Settings sheets (full-screen) ---- */
 .settings-panel {
   position: fixed;
   inset: 0;
   z-index: 10;
-  background: #0b0b0d;
-  color: #fff;
+  background: var(--bg);
+  color: var(--fg);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .settings-inner {
   max-width: 560px;
   margin: 0 auto;
-  padding: 24px;
+  padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
+.settings-inner h1,
 .settings-inner h2,
-.settings-inner h3 { margin: 0; }
-.settings-inner h3 { font-size: 1rem; color: #aaa; margin-bottom: 8px; }
+.settings-inner h3,
+.settings-inner p { margin: 0; }
+.settings-inner h3 { font-size: 1rem; color: var(--muted); margin-bottom: 8px; }
 .settings-preview {
   padding: 16px;
   border-radius: 12px;
-  border: 1px solid #333;
+  border: 1px solid var(--border);
+  background: var(--surface);
   line-height: 1.4;
 }
 .grow { flex: 1; min-width: 120px; padding: 0; }
-.segmented { display: flex; gap: 8px; }
-.segmented button { flex: 1; }
-.settings-inner button.selected { border: 3px solid #4da3ff; }
-.swatch { min-width: 72px; font-weight: 700; }
+.settings-inner button.selected { border: 3px solid var(--accent); }
+.swatch { min-width: 72px; min-height: 72px; font-weight: 700; font-size: 1.5rem; }
 .color-pickers { margin-top: 12px; }
 .color-pickers label { display: flex; align-items: center; gap: 10px; }
 .color-pickers input { padding: 2px; width: 64px; }
-.done { background: #2563eb; border-color: #2563eb; }
+.size-control button { min-width: 56px; }
 
 /* ---- Transmit: QR, countdown, mic meter ---- */
 .join-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
 .qr-block { display: flex; flex-direction: column; gap: 8px; }
+/* Stays white with a black QR so it scans */
 .qr-tile { background: #fff; padding: 12px; border-radius: 12px; align-self: flex-start; line-height: 0; }
-.muted { font-size: 0.75rem; color: #888; margin: 0; word-break: break-all; }
+.muted { font-size: 0.75rem; color: var(--muted); margin: 0; word-break: break-all; }
+.projector-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
 .countdown { font-size: 8rem; font-weight: 700; text-align: center; line-height: 1; }
-.meter { height: 8px; width: 100%; background: #222; border-radius: 4px; overflow: hidden; }
+.meter { height: 8px; width: 100%; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
 .meter-fill { height: 100%; background: #4ade80; }

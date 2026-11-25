@@ -1,117 +1,138 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useBroadcastSubscriber } from '../hooks/useBroadcast'
+import { useHiddenCursor } from '../hooks/useHiddenCursor'
 import { useWakeLock } from '../hooks/useWakeLock'
+import CaptionBox from '../components/CaptionBox'
+import TextSizeSheet from '../components/TextSizeSheet'
+import TopBar from '../components/TopBar'
 import ViewerSettingsPanel from '../components/ViewerSettingsPanel'
 import { normalizeCode } from '../lib/joinCode'
 import {
+  DEFAULT_BOX,
   hasSeenSetup,
   loadSettings,
   markSetupSeen,
   saveSettings,
+  type Box,
   type ViewerSettings,
 } from '../lib/viewerSettings'
 import { supabaseConfigError } from '../lib/supabase'
 
+// Projector: full-width area in the bottom third, ignoring saved layout.
+const PROJECTOR_BOX: Box = { x: 0.02, y: 0.58, w: 0.96, h: 0.4 }
+const PROJECTOR_FONT = 'clamp(40px, 5vw, 120px)'
+
+type Step = 'size' | 'layout' | 'settings' | null
+
 export default function Watch() {
   const [params, setParams] = useSearchParams()
   const code = normalizeCode(params.get('code') ?? '') || null
+  const projector = params.has('projector')
   const [input, setInput] = useState('')
   const { text, lastMessageAt, status } = useBroadcastSubscriber(code)
   useWakeLock(code !== null)
+  useHiddenCursor(projector && code !== null)
 
-  // Display settings, saved on this device. The panel opens on first join.
+  // Display settings, saved on this device. First join walks through size, then layout.
   const [settings, setSettings] = useState(loadSettings)
-  const [showSettings, setShowSettings] = useState(() => !hasSeenSetup())
+  const [step, setStep] = useState<Step>(() => (!projector && !hasSeenSetup() ? 'size' : null))
 
   function updateSettings(s: ViewerSettings) {
     setSettings(s)
     saveSettings(s)
   }
 
-  function closeSettings() {
+  function finishLayout() {
     markSetupSeen()
-    setShowSettings(false)
-  }
-
-  // Stick to the newest text unless the viewer scrolled up.
-  const boxRef = useRef<HTMLDivElement>(null)
-  const [stuck, setStuck] = useState(true)
-  useEffect(() => {
-    const el = boxRef.current
-    if (el && stuck) el.scrollTop = el.scrollHeight
-  }, [text, stuck, settings.fontSize])
-
-  function onScroll() {
-    const el = boxRef.current
-    if (!el) return
-    setStuck(el.scrollHeight - el.scrollTop - el.clientHeight <= 40)
-  }
-
-  function jumpToLive() {
-    const el = boxRef.current
-    if (el) el.scrollTop = el.scrollHeight
-    setStuck(true)
+    setStep(null)
   }
 
   if (!code) {
     return (
-      <main>
+      <main className="join-screen">
         <h1>Watch</h1>
         <form
-          className="btn-row"
+          className="join-form"
           onSubmit={(e) => {
             e.preventDefault()
             const c = normalizeCode(input)
-            if (c) setParams({ code: c })
+            if (c) setParams(projector ? { code: c, projector: '' } : { code: c })
           }}
         >
           <input
+            className="code-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             maxLength={4}
             autoCapitalize="characters"
+            autoComplete="off"
             placeholder="CODE"
+            aria-label="Join code"
           />
-          <button type="submit">Join</button>
+          <button type="submit" className="done">Join</button>
         </form>
-        <Link className="btn" to="/">Home</Link>
+        <Link className="btn secondary" to="/">Home</Link>
       </main>
     )
   }
 
+  const caption =
+    text || (status === 'connected' && lastMessageAt === null ? 'Waiting for transmitter…' : '')
+
+  if (projector) {
+    return (
+      <div className="watch-screen">
+        <CaptionBox text={caption} fontSize={PROJECTOR_FONT} box={PROJECTOR_BOX} />
+      </div>
+    )
+  }
+
+  const layout = step === 'layout'
+  // Put the toolbar in the half of the screen the box isn't in.
+  const toolbarTop = settings.box.y + settings.box.h / 2 > 0.5
+
   return (
-    <div
-      className={`watch-screen pos-${settings.position}`}
-      style={{ background: settings.bgColor, color: settings.textColor }}
-    >
+    <div className="watch-screen">
       <div className="watch-chrome">
         <span>
           Code {code} · {status === 'connected' ? 'connected' : status === 'off' ? 'not configured' : 'Reconnecting…'}
         </span>
-        <button className="chrome-btn" onClick={() => setShowSettings(true)} aria-label="Caption settings">
-          ⚙
-        </button>
         <Link className="chrome-btn" to="/watch">Change code</Link>
       </div>
+      <TopBar onClick={() => setStep('settings')} />
       {supabaseConfigError && <p className="err watch-err">{supabaseConfigError}</p>}
 
-      {/* Height is about 4 lines of text at the chosen size. */}
-      <div
-        className="watch-captions"
-        ref={boxRef}
-        onScroll={onScroll}
-        style={{ fontSize: settings.fontSize, height: `${settings.fontSize * 1.4 * 4}px` }}
-      >
-        {text || (status === 'connected' && lastMessageAt === null ? 'Waiting for transmitter…' : '')}
-      </div>
+      <CaptionBox
+        text={caption}
+        fontSize={settings.fontSize}
+        box={settings.box}
+        editing={layout}
+        onBoxChange={(box) => updateSettings({ ...settings, box })}
+      />
 
-      {!stuck && (
-        <button className="jump-live" onClick={jumpToLive}>Jump to live ↓</button>
+      {layout && (
+        <div className={'layout-bar ' + (toolbarTop ? 'at-top' : 'at-bottom')}>
+          <span>Drag to move · drag the corner to resize</span>
+          <button onClick={() => updateSettings({ ...settings, box: DEFAULT_BOX })}>Reset</button>
+          <button className="done" onClick={finishLayout}>Done</button>
+        </div>
       )}
 
-      {showSettings && (
-        <ViewerSettingsPanel settings={settings} onChange={updateSettings} onDone={closeSettings} />
+      {step === 'size' && (
+        <TextSizeSheet
+          fontSize={settings.fontSize}
+          onChange={(fontSize) => updateSettings({ ...settings, fontSize })}
+          onNext={() => setStep('layout')}
+        />
+      )}
+      {step === 'settings' && (
+        <ViewerSettingsPanel
+          settings={settings}
+          onChange={updateSettings}
+          onAdjust={() => setStep('layout')}
+          onDone={finishLayout}
+        />
       )}
     </div>
   )

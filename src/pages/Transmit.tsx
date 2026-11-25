@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import JoinCode from '../components/JoinCode'
+import ThemeSettings from '../components/ThemeSettings'
+import TopBar from '../components/TopBar'
 import { useBroadcastPublisher } from '../hooks/useBroadcast'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { useTranslationSession, type SessionStatus } from '../hooks/useTranslationSession'
@@ -25,6 +27,7 @@ export default function Transmit() {
   const [code, setCode] = useState(() => getTransmitCode())
   const { push, clear, status: broadcastStatus } = useBroadcastPublisher(code)
   const [preview, setPreview] = useState('')
+  const [showTheme, setShowTheme] = useState(false)
 
   const handleDelta = useCallback(
     (delta: string) => {
@@ -40,6 +43,7 @@ export default function Transmit() {
   useWakeLock(running)
 
   const watchUrl = `${location.origin}/watch?code=${code}`
+  const projectorUrl = `/watch?code=${code}&projector`
 
   function clearCaptions() {
     clear()
@@ -54,6 +58,7 @@ export default function Transmit() {
 
   return (
     <main>
+      <TopBar onClick={() => setShowTheme(true)} />
       <h1>Transmit</h1>
       <div className="join-row">
         <JoinCode code={code} />
@@ -63,6 +68,7 @@ export default function Transmit() {
           </div>
           <div>Scan to get captions</div>
           <p className="muted">{watchUrl}</p>
+          <a className="projector-link" href={projectorUrl} target="_blank" rel="noreferrer">Projector link</a>
         </div>
       </div>
 
@@ -90,6 +96,7 @@ export default function Transmit() {
 
       <div className="caption-box">{preview}</div>
       <Link className="btn" to="/">Home</Link>
+      {showTheme && <ThemeSettings onDone={() => setShowTheme(false)} />}
     </main>
   )
 }
