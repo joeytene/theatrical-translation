@@ -8,7 +8,7 @@ import { useTranslationSession, type SessionStatus } from '../hooks/useTranslati
 import { getTransmitCode, newTransmitCode } from '../lib/joinCode'
 import { supabaseConfigError } from '../lib/supabase'
 
-function statusLabel(status: SessionStatus, countdown: number | null) {
+function statusLabel(status: SessionStatus, countdown: number | null, attempt: number) {
   switch (status) {
     case 'idle': return 'Ready'
     case 'requesting-mic': return 'Getting microphone…'
@@ -16,7 +16,7 @@ function statusLabel(status: SessionStatus, countdown: number | null) {
     case 'connected': return 'Connected'
     case 'countdown': return `Starting in ${countdown ?? ''}…`
     case 'live': return '● Listening'
-    case 'reconnecting': return 'Reconnecting…'
+    case 'reconnecting': return attempt > 0 ? `Reconnecting… (attempt ${attempt})` : 'Reconnecting…'
     case 'error': return 'Error'
   }
 }
@@ -83,7 +83,7 @@ export default function Transmit() {
       )}
 
       <p className="status">
-        Status: {statusLabel(session.status, session.countdown)} · Audience link: {broadcastStatus}
+        Status: {statusLabel(session.status, session.countdown, session.attempt)} · Audience link: {broadcastStatus}
       </p>
       {session.error && <p className="err">{session.error}</p>}
       {supabaseConfigError && <p className="err">{supabaseConfigError}</p>}
