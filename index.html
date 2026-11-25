@@ -3,8 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
     <title>Live Theatre Captions</title>
+    <script>
+      // Apply the saved theme before first paint (see src/lib/theme.ts).
+      try {
+        var t = JSON.parse(localStorage.getItem('theme') || 'null')
+        var hex = /^#[0-9a-f]{6}$/i
+        if (t && t.theme && hex.test(t.theme.textColor) && hex.test(t.theme.bgColor)) {
+          var r = document.documentElement.style
+          r.setProperty('--fg', t.theme.textColor)
+          r.setProperty('--bg', t.theme.bgColor)
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

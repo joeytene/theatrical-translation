@@ -1,36 +1,60 @@
-// How a viewer wants captions to look. Saved on this device only.
+// Where the caption box sits and how big the text is. Saved on this device only.
+// Box values are fractions (0-1) of the viewport so they survive rotation and resize.
+export type Box = { x: number; y: number; w: number; h: number }
+
 export type ViewerSettings = {
   fontSize: number // px
-  position: 'top' | 'middle' | 'bottom'
-  textColor: string
-  bgColor: string
+  box: Box
 }
 
 export const MIN_FONT = 18
-export const MAX_FONT = 72
+export const MAX_FONT = 96
 
-export const DEFAULT_SETTINGS: ViewerSettings = {
-  fontSize: 32,
-  position: 'bottom',
-  textColor: '#ffffff',
-  bgColor: '#000000',
+const PRESET_BOXES: Record<string, Box> = {
+  top: { x: 0.04, y: 0.06, w: 0.92, h: 0.3 },
+  middle: { x: 0.04, y: 0.35, w: 0.92, h: 0.3 },
+  bottom: { x: 0.04, y: 0.64, w: 0.92, h: 0.3 },
 }
 
-export const PRESETS: { name: string; textColor: string; bgColor: string }[] = [
-  { name: 'White on black', textColor: '#ffffff', bgColor: '#000000' },
-  { name: 'Black on white', textColor: '#000000', bgColor: '#ffffff' },
-  { name: 'Yellow on black', textColor: '#ffeb3b', bgColor: '#000000' },
-  // Dim green: easy on the eyes in a dark theatre.
-  { name: 'Green on black (dim)', textColor: '#2e8b4f', bgColor: '#000000' },
-]
+export const DEFAULT_BOX: Box = PRESET_BOXES.bottom
+
+export const DEFAULT_SETTINGS: ViewerSettings = { fontSize: 32, box: DEFAULT_BOX }
 
 export function clampFont(n: number): number {
   return Math.min(MAX_FONT, Math.max(MIN_FONT, Math.round(n)))
 }
 
+const BOX_PADDING = 32 // px, top + bottom inside the box
+
+// Keep the box at a usable size and fully inside the viewport (vw, vh in px).
+export function clampBox(box: Box, vw: number, vh: number, fontSize: number): Box {
+  if (!(vw > 0 && vh > 0)) return box // not measured yet
+  const minW = Math.min(vw, Math.max(240, vw * 0.4)) / vw
+  const minH = Math.min(vh, fontSize * 1.4 * 2 + BOX_PADDING) / vh
+  const w = Math.min(1, Math.max(minW, box.w))
+  const h = Math.min(1, Math.max(minH, box.h))
+  return {
+    w,
+    h,
+    x: Math.min(1 - w, Math.max(0, box.x)),
+    y: Math.min(1 - h, Math.max(0, box.y)),
+  }
+}
+
 const KEY = 'viewerSettings'
 
 type Stored = { settings: ViewerSettings; seen: boolean }
+
+const isFrac = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1
+
+function readBox(s: Record<string, unknown>): Box {
+  const b = s.box as Record<string, unknown> | undefined
+  if (b && isFrac(b.x) && isFrac(b.y) && isFrac(b.w) && isFrac(b.h)) {
+    return { x: b.x, y: b.y, w: b.w, h: b.h }
+  }
+  // Old settings stored top / middle / bottom.
+  return PRESET_BOXES[s.position as string] ?? DEFAULT_BOX
+}
 
 function read(): Stored {
   try {
@@ -38,14 +62,11 @@ function read(): Stored {
     if (raw) {
       const d = JSON.parse(raw)
       const s = d?.settings ?? {}
-      const pos = ['top', 'middle', 'bottom'].includes(s.position) ? s.position : DEFAULT_SETTINGS.position
       return {
         seen: d?.seen === true,
         settings: {
           fontSize: typeof s.fontSize === 'number' ? clampFont(s.fontSize) : DEFAULT_SETTINGS.fontSize,
-          position: pos,
-          textColor: typeof s.textColor === 'string' ? s.textColor : DEFAULT_SETTINGS.textColor,
-          bgColor: typeof s.bgColor === 'string' ? s.bgColor : DEFAULT_SETTINGS.bgColor,
+          box: readBox(s),
         },
       }
     }
@@ -71,7 +92,7 @@ export function saveSettings(settings: ViewerSettings) {
   write({ ...read(), settings: { ...settings, fontSize: clampFont(settings.fontSize) } })
 }
 
-// Has this device already seen the first-time setup panel?
+// Has this device already finished the first-time watch setup?
 export function hasSeenSetup(): boolean {
   return read().seen
 }
