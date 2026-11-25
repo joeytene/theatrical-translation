@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { checkPassword } from './_auth.js'
 
 // Asks OpenAI for a short-lived token the browser can use.
 // The real OpenAI key never leaves the server.
@@ -7,6 +8,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const auth = checkPassword(req.headers['x-site-password'])
+  if (auth === 'unset') {
+    return res.status(500).json({ error: 'Server misconfigured: SITE_PASSWORD not set' })
+  }
+  if (auth === 'wrong') {
+    return res.status(401).json({ error: 'Wrong password' })
   }
 
   try {

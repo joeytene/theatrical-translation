@@ -5,6 +5,7 @@ import Transmit from './pages/Transmit'
 import Watch from './pages/Watch'
 import Debug from './pages/Debug'
 import ThemeOnboarding from './components/ThemeOnboarding'
+import PasswordGate from './components/PasswordGate'
 import { hasSeenTheme } from './lib/theme'
 
 export default function App() {
@@ -13,7 +14,7 @@ export default function App() {
     () => !hasSeenTheme() && !new URLSearchParams(location.search).has('projector'),
   )
   return (
-    <>
+    <PasswordGate>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/transmit" element={<Transmit />} />
@@ -21,6 +22,6 @@ export default function App() {
         <Route path="/debug" element={<Debug />} />
       </Routes>
       {onboarding && <ThemeOnboarding onClose={() => setOnboarding(false)} />}
-    </>
+    </PasswordGate>
   )
 }
