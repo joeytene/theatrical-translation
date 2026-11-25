@@ -7,6 +7,7 @@ import TopBar from '../components/TopBar'
 import { useBroadcastPublisher } from '../hooks/useBroadcast'
 import { useWakeLock } from '../hooks/useWakeLock'
 import { useTranslationSession, type SessionStatus } from '../hooks/useTranslationSession'
+import { getSitePassword } from '../lib/auth'
 import { getTransmitCode, newTransmitCode } from '../lib/joinCode'
 import { supabaseConfigError } from '../lib/supabase'
 
@@ -43,7 +44,9 @@ export default function Transmit() {
   useWakeLock(running)
 
   const watchUrl = `${location.origin}/watch?code=${code}`
-  const projectorUrl = `/watch?code=${code}&projector`
+  // Audience links carry the password so they can join without typing it.
+  const key = `&k=${encodeURIComponent(getSitePassword())}`
+  const projectorUrl = `/watch?code=${code}&projector${key}`
 
   function clearCaptions() {
     clear()
@@ -64,7 +67,7 @@ export default function Transmit() {
         <JoinCode code={code} />
         <div className="qr-block">
           <div className="qr-tile">
-            <QRCodeSVG value={watchUrl} size={220} marginSize={2} />
+            <QRCodeSVG value={watchUrl + key} size={220} marginSize={2} />
           </div>
           <div>Scan to get captions</div>
           <p className="muted">{watchUrl}</p>
